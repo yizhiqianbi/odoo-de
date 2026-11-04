@@ -1,0 +1,93 @@
+<odoo>
+    <data noupdate="1">
+        <record id="playbook_hr" model="work.playbook">
+            <field name="sequence">30</field>
+            <field name="code">hr</field>
+            <field name="name">招聘候选人跟进</field>
+            <field name="model">hr.applicant</field>
+            <field name="party_label">候选人</field>
+            <field name="owner_field">recruiter_id.user_id</field>
+            <field name="party_field">partner_id</field>
+            <field name="group_id" ref="hr_recruitment.group_hr_recruitment_user"/>
+            <field name="agent_fields">hr_interview_slot
+hr_feedback_summary
+hr_onboarding_note</field>
+            <field name="role">你是公司人事部的 AI 招聘专员，和招聘负责人一起跟进一位候选人：初筛简历、约面试、收集面试反馈、发录用通知、准备入职。招聘负责人只需要做少量关键决定。
+对候选人用中文（候选人用英文时用英文），热情、尊重、准确，回复及时，像一个专业的 HR。</field>
+            <field name="external_rules">任何会约束公司的话都是 commitment：录用或拒绝、薪资和福利、入职日期、职级、试用期、任何「我们一定会」的承诺。
+不能向候选人透露：面试官的评价原话、其他候选人、公司薪资预算和拟定薪资（录用通知批准之前）、内部讨论。
+可以直接说的：收到简历、面试安排的可选时间、需要候选人补充的资料、流程进展到哪一步。
+面试时间要先和面试官的日程对上，不要自己拍板一个时间告诉候选人已确定，除非 Odoo 里已有这次会议。</field>
+        </record>
+
+        <record id="hr_stage_screen" model="work.stage">
+            <field name="playbook_id" ref="playbook_hr"/>
+            <field name="sequence">1</field>
+            <field name="code">screen</field>
+            <field name="name">简历初筛</field>
+            <field name="short_name">初筛</field>
+            <field name="external_name">简历筛选</field>
+            <field name="goal">判断候选人是否符合职位要求，值得约面试。</field>
+            <field name="agent_task">对照职位描述（job_description）逐条看候选人的经历、学历、期望薪资和到岗时间，列出匹配点和疑问点，推荐约面试或不合适。请招聘负责人决定。</field>
+            <field name="human_question">是否约这位候选人面试？</field>
+            <field name="gate">human</field>
+        </record>
+        <record id="hr_stage_schedule" model="work.stage">
+            <field name="playbook_id" ref="playbook_hr"/>
+            <field name="sequence">2</field>
+            <field name="code">schedule</field>
+            <field name="name">约面试</field>
+            <field name="short_name">约面试</field>
+            <field name="external_name">面试安排</field>
+            <field name="goal">和候选人约好面试时间和方式。</field>
+            <field name="agent_task">向候选人要两三个可面试的时间段，和面试官的安排对上后，把约定时间写进 hr_interview_slot，并完成这一步。候选人一直不回就用 schedule_followup 追问。</field>
+            <field name="gate">agent</field>
+        </record>
+        <record id="hr_stage_feedback" model="work.stage">
+            <field name="playbook_id" ref="playbook_hr"/>
+            <field name="sequence">3</field>
+            <field name="code">feedback</field>
+            <field name="name">面试反馈</field>
+            <field name="short_name">反馈</field>
+            <field name="external_name">面试后评估</field>
+            <field name="goal">收齐每位面试官的反馈。</field>
+            <field name="agent_task">从记录和内部消息里整理每位面试官的结论和理由，写进 hr_feedback_summary。缺谁的反馈就标记受阻并写清楚缺谁。收齐后完成这一步。</field>
+            <field name="gate">agent</field>
+        </record>
+        <record id="hr_stage_decide" model="work.stage">
+            <field name="playbook_id" ref="playbook_hr"/>
+            <field name="sequence">4</field>
+            <field name="code">decide</field>
+            <field name="name">录用决定</field>
+            <field name="short_name">决定</field>
+            <field name="external_name">结果评估</field>
+            <field name="goal">决定录用还是不录用。</field>
+            <field name="agent_task">综合简历、面试反馈和期望薪资，推荐录用、不录用或加一轮面试，写清楚依据。</field>
+            <field name="human_question">是否录用？</field>
+            <field name="gate">human</field>
+        </record>
+        <record id="hr_stage_offer" model="work.stage">
+            <field name="playbook_id" ref="playbook_hr"/>
+            <field name="sequence">5</field>
+            <field name="code">offer</field>
+            <field name="name">录用通知</field>
+            <field name="short_name">Offer</field>
+            <field name="external_name">录用通知</field>
+            <field name="goal">确定薪资、职级、入职日期，发出录用通知。</field>
+            <field name="agent_task">按拟定薪资（salary_proposed）、职位和候选人的可到岗日期起草录用通知要点，请招聘负责人批准。批准后才能在群里把录用通知发给候选人（走 commitment 草稿）。</field>
+            <field name="human_question">是否按此发出录用通知？</field>
+            <field name="gate">human</field>
+        </record>
+        <record id="hr_stage_onboard" model="work.stage">
+            <field name="playbook_id" ref="playbook_hr"/>
+            <field name="sequence">6</field>
+            <field name="code">onboard</field>
+            <field name="name">入职准备</field>
+            <field name="short_name">入职</field>
+            <field name="external_name">入职准备</field>
+            <field name="goal">候选人接受录用后，收齐入职资料，确认入职日期。</field>
+            <field name="agent_task">列出入职要准备的资料（身份证、学历证明、离职证明、银行卡、体检报告），向候选人要齐，进度写进 hr_onboarding_note。资料齐全、入职日期确认后完成这一步；创建员工档案由人来做。</field>
+            <field name="gate">agent</field>
+        </record>
+    </data>
+</odoo>

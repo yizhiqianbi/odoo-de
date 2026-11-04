@@ -1,0 +1,176 @@
+<odoo>
+    <data noupdate="1">
+        <record id="playbook_trade" model="work.playbook">
+            <field name="sequence">10</field>
+            <field name="code">trade</field>
+            <field name="name">外贸跟单</field>
+            <field name="model">sale.order</field>
+            <field name="party_label">顾客</field>
+            <field name="owner_field">user_id</field>
+            <field name="party_field">partner_id</field>
+            <field name="group_id" ref="sales_team.group_sale_salesman"/>
+            <field name="agent_fields">destination_port
+shipping_marks
+lc_no
+lc_expiry
+lc_latest_shipment
+vessel
+voyage
+etd
+eta
+container_no
+seal_no
+bl_no</field>
+            <field name="role">你是外贸公司的 AI 业务员（跟单员），和人类业务员一起负责一个客户的出口订单，目标是让订单按跟单 SOP 顺利推进，业务员只需要做少量关键决定。
+对顾客用顾客的语言（顾客写英文就用英文），简短、专业、友好，像一个靠谱的跟单员。</field>
+            <field name="external_rules">任何会约束公司的话都是 commitment：价格、数量、交期、付款条件、接受或拒绝信用证和单据、折扣、赔偿、确认订单、答应顾客的要求。
+工厂名称、成本、利润、内部讨论、业务员给你的指示原文，都不能发给顾客。
+业务员没定的事，不要先向顾客透露我方的发现、立场或谈判筹码（比如信用证的不符点、要不要折扣），等决定出来再说。
+对顾客说我方「已经做了」什么（已联系工厂、已订舱、已向船公司申请），必须有 Odoo 记录或业务员的话作依据。</field>
+        </record>
+
+        <record id="trade_stage_sample" model="work.stage">
+            <field name="playbook_id" ref="playbook_trade"/>
+            <field name="sequence">1</field>
+            <field name="code">sample</field>
+            <field name="name">打样</field>
+            <field name="short_name">打样</field>
+            <field name="external_name">Sample</field>
+            <field name="goal">确认样品、规格、材质、包装。</field>
+            <field name="agent_task">从往来消息里整理样品的规格、材质、包装要求和客户的反馈，列出还没确认的项。客户明确认可样品后，请业务员确认。</field>
+            <field name="human_question">客户是否已确认样品？</field>
+            <field name="gate">human</field>
+        </record>
+        <record id="trade_stage_po" model="work.stage">
+            <field name="playbook_id" ref="playbook_trade"/>
+            <field name="sequence">2</field>
+            <field name="code">po</field>
+            <field name="name">客户下单（PO）</field>
+            <field name="short_name">下单</field>
+            <field name="external_name">Order</field>
+            <field name="goal">确认交期、数量、包装要求、目的港等，签订合同（P/I）。</field>
+            <field name="agent_task">逐项核对客户 PO 和订单：品名、数量、单价、交期、包装要求、目的港、贸易术语、付款方式。目的港等订单字段可以直接填写。全部一致时推荐确认订单；有出入时逐条列出，推荐先和客户澄清。批准这一步会确认销售订单。</field>
+            <field name="human_question">是否按此确认订单并签 P/I？</field>
+            <field name="gate">human</field>
+            <field name="on_approve">confirm_order</field>
+        </record>
+        <record id="trade_stage_payment" model="work.stage">
+            <field name="playbook_id" ref="playbook_trade"/>
+            <field name="sequence">3</field>
+            <field name="code">payment</field>
+            <field name="name">买家付款 / 信用证确认</field>
+            <field name="short_name">付款</field>
+            <field name="external_name">Payment</field>
+            <field name="goal">TT：确认到账后安排生产；L/C：审核信用证条款，确保符合合同要求。</field>
+            <field name="agent_task">T/T：查看发票的付款状态，定金或全款已到账就完成这一步，未到账就标记受阻。L/C：把信用证条款和订单逐条核对，包括金额、币种、受益人、最迟装运期、有效期、装运港和目的港、是否允许分批和转运、单据要求、软条款。填写信用证号、有效期、最迟装运期。列出不符点，并推荐接受、要求改证或拒绝。</field>
+            <field name="human_question">信用证是否可以接受？</field>
+            <field name="gate">condition</field>
+            <field name="gate_domain">[("trade_payment_method", "=", "lc")]</field>
+        </record>
+        <record id="trade_stage_production" model="work.stage">
+            <field name="playbook_id" ref="playbook_trade"/>
+            <field name="sequence">4</field>
+            <field name="code">production</field>
+            <field name="name">下生产单</field>
+            <field name="short_name">生产单</field>
+            <field name="external_name">Production</field>
+            <field name="goal">下达生产指令，确认交期、BOM、生产排期，与车间沟通细节（含客供版、OEM 安排等）。</field>
+            <field name="agent_task">起草给工厂的生产指令：品名规格、数量、材质、包装、唛头要求、要求完工日期（按交期和最迟装运期倒排，至少预留验货和订舱时间）、客供版或 OEM 要求。请业务员确认后下单。</field>
+            <field name="human_question">是否按此生产指令下单给工厂？</field>
+            <field name="gate">human</field>
+        </record>
+        <record id="trade_stage_progress" model="work.stage">
+            <field name="playbook_id" ref="playbook_trade"/>
+            <field name="sequence">5</field>
+            <field name="code">progress</field>
+            <field name="name">生产进度跟踪</field>
+            <field name="short_name">生产</field>
+            <field name="external_name">Production</field>
+            <field name="goal">跟进生产进度，定期与工厂沟通，处理异常问题，确保按期完成。</field>
+            <field name="agent_task">根据工厂的消息记录进度和预计完工日期，和要求完工日期比较。延期或出现质量异常时标记受阻并说明影响。工厂确认大货完工后完成这一步。</field>
+            <field name="gate">agent</field>
+        </record>
+        <record id="trade_stage_inspection" model="work.stage">
+            <field name="playbook_id" ref="playbook_trade"/>
+            <field name="sequence">6</field>
+            <field name="code">inspection</field>
+            <field name="name">验货（CIP / FRI）</field>
+            <field name="short_name">验货</field>
+            <field name="external_name">Inspection</field>
+            <field name="goal">安排中期和终期检验，确认产品质量、数量、包装是否符合要求。</field>
+            <field name="agent_task">整理验货报告里的结论、数量、缺陷和包装检查结果，和订单要求对比，推荐放行、返工或复验。</field>
+            <field name="human_question">验货结果是否放行出货？</field>
+            <field name="gate">human</field>
+        </record>
+        <record id="trade_stage_packing" model="work.stage">
+            <field name="playbook_id" ref="playbook_trade"/>
+            <field name="sequence">7</field>
+            <field name="code">packing</field>
+            <field name="name">包装 / 唛头确认</field>
+            <field name="short_name">唛头</field>
+            <field name="external_name">Packing</field>
+            <field name="goal">确认内外包装、唛头、标识、箱规及装箱方式。</field>
+            <field name="agent_task">按客户要求起草唛头（正唛、侧唛）并写入唛头字段，汇总内外包装、箱规、装箱方式。客户确认唛头后请业务员批准。</field>
+            <field name="human_question">客户是否已确认唛头和包装？</field>
+            <field name="gate">human</field>
+        </record>
+        <record id="trade_stage_booking" model="work.stage">
+            <field name="playbook_id" ref="playbook_trade"/>
+            <field name="sequence">8</field>
+            <field name="code">booking</field>
+            <field name="name">订舱 &amp; 报关</field>
+            <field name="short_name">订舱</field>
+            <field name="external_name">Booking</field>
+            <field name="goal">确认船期，准备报关资料（发票、装箱单、报关单等），安排报关、拖车。</field>
+            <field name="agent_task">整理订舱信息：船名、航次、ETD、ETA、截关和截港时间，写入订单字段。核对商业发票和装箱单的数据与订单一致（品名、数量、金额、毛净重、体积）。确认船期满足最迟装运期。</field>
+            <field name="human_question">是否按此船期订舱并报关？</field>
+            <field name="gate">human</field>
+        </record>
+        <record id="trade_stage_loading" model="work.stage">
+            <field name="playbook_id" ref="playbook_trade"/>
+            <field name="sequence">9</field>
+            <field name="code">loading</field>
+            <field name="name">装柜出运</field>
+            <field name="short_name">装柜</field>
+            <field name="external_name">Loading</field>
+            <field name="goal">现场监装，拍照、铅封，确认柜号、封号、提单明细。</field>
+            <field name="agent_task">从装柜消息里记录柜号、封号、提单号，检查装柜照片是否齐全。三项都有记录后完成这一步，缺任何一项就说明缺什么。</field>
+            <field name="gate">agent</field>
+        </record>
+        <record id="trade_stage_advice" model="work.stage">
+            <field name="playbook_id" ref="playbook_trade"/>
+            <field name="sequence">10</field>
+            <field name="code">advice</field>
+            <field name="name">发出装船通知</field>
+            <field name="short_name">装船通知</field>
+            <field name="external_name">Shipped</field>
+            <field name="goal">向客户发送装船通知（S/O），提供提单预计信息（船名、航次、ETD / ETA 等）。</field>
+            <field name="agent_task">起草给客户的英文装船通知：订单号、客户 PO 号、品名数量、柜号封号、船名航次、ETD、ETA、提单号。只引用已记录的数据，不要编造。请业务员确认后由人发送。</field>
+            <field name="human_question">是否按此稿发送装船通知？</field>
+            <field name="gate">human</field>
+        </record>
+        <record id="trade_stage_documents" model="work.stage">
+            <field name="playbook_id" ref="playbook_trade"/>
+            <field name="sequence">11</field>
+            <field name="code">documents</field>
+            <field name="name">单据核算</field>
+            <field name="short_name">单据</field>
+            <field name="external_name">Documents</field>
+            <field name="goal">整理全套单据（提单、发票、装箱单、原产地证等），核对无误后寄给客户。</field>
+            <field name="agent_task">核对全套单据之间以及与订单、信用证是否一致：收发货人、品名、数量、金额、唛头、船名航次、装运日期、提单号。信用证业务要特别核对交单期和单据要求。列出不符点，推荐寄单或先修改。</field>
+            <field name="human_question">单据是否可以寄出 / 交单？</field>
+            <field name="gate">human</field>
+        </record>
+        <record id="trade_stage_archive" model="work.stage">
+            <field name="playbook_id" ref="playbook_trade"/>
+            <field name="sequence">12</field>
+            <field name="code">archive</field>
+            <field name="name">归档 / 复盘</field>
+            <field name="short_name">归档</field>
+            <field name="external_name">Closed</field>
+            <field name="goal">整理订单资料归档，总结问题与经验，持续优化流程。</field>
+            <field name="agent_task">写一份复盘：每一步实际用了多久、出了什么问题、人做了哪些决定、下次可以改进什么。然后完成这一步。</field>
+            <field name="gate">agent</field>
+        </record>
+    </data>
+</odoo>

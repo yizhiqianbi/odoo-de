@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Agent 组织与权限</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="admin">
+  <header class="admin-head">
+    <h1>Agent 组织与权限</h1>
+    <p>谁能向谁提问、派任务、读取哪一级的信息，都以这张授权表为准，服务端对每个信封强制执行。越权一律拒绝，不升级。</p>
+    <a href="/" class="link-btn">回到群聊</a>
+  </header>
+  <main class="admin-grid">
+    <nav id="tree" class="tree" aria-label="agent 组织"></nav>
+    <section id="detail" class="detail" aria-live="polite"></section>
+    <section class="log" aria-label="信封日志">
+      <div class="log-head">
+        <h2>往来记录</h2>
+        <div class="audience" role="radiogroup" aria-label="筛选">
+          <button type="button" role="radio" data-filter="all" aria-checked="true">全部</button>
+          <button type="button" role="radio" data-filter="denied" aria-checked="false">只看拒绝</button>
+          <button type="button" role="radio" data-filter="agent" aria-checked="false">只看选中的</button>
+        </div>
+      </div>
+      <div id="log" class="stream"></div>
+    </section>
+  </main>
+  <p id="admin-error" class="form-error" role="alert"></p>
+  <script src="/static/admin.js" type="module"></script>
+</body>
+</html>

@@ -1,0 +1,92 @@
+#!/usr/bin/env python3
+"""The digital employee's only way into Odoo: the trade_sop agent methods, called over JSON-2 as the bot user.
+
+What the bot may do is enforced inside Odoo (read-only access, guarded actions), not by this script.
+"""
+import argparse
+import json
+import os
+import sys
+import urllib.error
+import urllib.request
+
+BASE = "http://127.0.0.1:8069/json/2"
+KEY_FILE = os.environ.get("SOP_KEY_FILE") or next(
+    (p for p in (os.path.expanduser("~/.trade_bot_api_key"),) if os.path.exists(p)),
+    "/home/hubin/odoo-de/secrets/trade_bot_api_key",
+)
+
+
+def call(model, method, **body):
+    req = urllib.request.Request(
+        f"{BASE}/{model}/{method}",
+        data=json.dumps(body).encode(),
+        headers={"Authorization": f"bearer {open(KEY_FILE).read().strip()}",
+                 "Content-Type": "application/json; charset=utf-8", "X-Odoo-Database": "de",
+                 "User-Agent": "trade-sop-agent"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=60) as res:
+            return json.load(res)
+    except urllib.error.HTTPError as e:
+        error = json.load(e)
+        sys.exit(json.dumps({"error": error.get("message"), "type": error.get("name")}, ensure_ascii=False))
+
+
+def order_id(name):
+    ids = call("sale.order", "search", domain=[("name", "=", name)])
+    if not ids:
+        sys.exit(json.dumps({"error": f"找不到订单 {name}"}, ensure_ascii=False))
+    return ids[:1]
+
+
+def text(value):
+    return sys.stdin.read() if value == "-" else value
+
+
+def main():
+    p = argparse.ArgumentParser(prog="sop", description="外贸跟单 SOP：数字员工的工具")
+    sub = p.add_subparsers(dest="cmd", required=True)
+    sub.add_parser("open", help="列出可以推进的订单")
+    c = sub.add_parser("context", help="读取一张订单的全部跟单信息")
+    c.add_argument("order")
+    r = sub.add_parser("report", help="记录当前步骤的进展，可填写允许的订单字段")
+    r.add_argument("order"); r.add_argument("step")
+    r.add_argument("--summary", required=True, help="'-' 表示从标准输入读取")
+    r.add_argument("--set", action="append", default=[], metavar="FIELD=VALUE")
+    d = sub.add_parser("complete", help="完成一个不需要人拍板的步骤")
+    d.add_argument("order"); d.add_argument("step")
+    d.add_argument("--summary", required=True, help="'-' 表示从标准输入读取")
+    a = sub.add_parser("ask", help="请业务员对当前步骤做一个决定")
+    a.add_argument("order"); a.add_argument("step")
+    a.add_argument("--question", required=True)
+    a.add_argument("--option", action="append", required=True, help="1 到 3 个，可重复")
+    a.add_argument("--recommend", required=True, help="必须等于某个 --option")
+    a.add_argument("--summary", default="", help="核对结论；'-' 表示从标准输入读取")
+    b = sub.add_parser("block", help="当前步骤需要有人先在 SOP 之外处理")
+    b.add_argument("order"); b.add_argument("step"); b.add_argument("--reason", required=True)
+    args = p.parse_args()
+
+    if args.cmd == "open":
+        result = call("sale.order", "sop_agent_open_orders")
+    elif args.cmd == "context":
+        result = call("sale.order", "sop_agent_context", ids=order_id(args.order))
+    elif args.cmd == "report":
+        values = dict(item.split("=", 1) for item in args.set)
+        result = call("sale.order", "sop_agent_report", ids=order_id(args.order), step_code=args.step,
+                      summary=text(args.summary), values=values)
+    elif args.cmd == "complete":
+        result = call("sale.order", "sop_agent_complete", ids=order_id(args.order), step_code=args.step,
+                      summary=text(args.summary))
+    elif args.cmd == "ask":
+        result = call("sale.order", "sop_agent_request_decision", ids=order_id(args.order), step_code=args.step,
+                      question=args.question, options=args.option, recommendation=args.recommend,
+                      summary=text(args.summary))
+    else:
+        result = call("sale.order", "sop_agent_block", ids=order_id(args.order), step_code=args.step,
+                      reason=args.reason)
+    print(json.dumps(result, ensure_ascii=False, indent=1))
+
+
+if __name__ == "__main__":
+    main()

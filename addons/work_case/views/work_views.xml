@@ -1,0 +1,218 @@
+<odoo>
+    <record id="work_step_view_list" model="ir.ui.view">
+        <field name="name">work.step.list</field>
+        <field name="model">work.step</field>
+        <field name="arch" type="xml">
+            <list editable="bottom" create="0" delete="0"
+                  decoration-muted="state == 'done'" decoration-warning="state == 'waiting'" decoration-danger="state == 'blocked'">
+                <field name="sequence" readonly="1" optional="hide"/>
+                <field name="playbook_id" readonly="1" column_invisible="context.get('hide_case')" optional="show"/>
+                <field name="record_name" readonly="1" column_invisible="context.get('hide_case')"/>
+                <field name="name" readonly="1"/>
+                <field name="state" readonly="1" widget="badge"
+                       decoration-info="state == 'working'" decoration-warning="state == 'waiting'"
+                       decoration-danger="state == 'blocked'" decoration-success="state == 'done'"/>
+                <field name="needs_human" readonly="1" optional="show"/>
+                <field name="agent_summary" readonly="1"/>
+                <field name="question" readonly="1"/>
+                <field name="recommendation" readonly="1"/>
+                <field name="human_note" readonly="state == 'done'"/>
+                <field name="decision" optional="show"/>
+                <field name="decided_by" optional="hide"/>
+                <field name="owner_id" optional="hide" column_invisible="context.get('hide_case')"/>
+                <button name="action_approve" type="object" string="批准" class="btn-primary" invisible="state != 'waiting'"/>
+                <button name="action_reject" type="object" string="驳回" invisible="state != 'waiting'"/>
+                <button name="action_approve" type="object" string="人工完成" confirm="跳过数字员工，直接把这一步标为完成？"
+                        invisible="state in ('waiting', 'done')"/>
+                <button name="action_open_record" type="object" string="打开" icon="fa-external-link"
+                        column_invisible="context.get('hide_case')"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="work_step_view_kanban" model="ir.ui.view">
+        <field name="name">work.step.kanban</field>
+        <field name="model">work.step</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="playbook_id" create="0" group_create="0" records_draggable="0">
+                <field name="state"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="d-flex justify-content-between">
+                            <field name="record_name" class="fw-bold"/>
+                            <field name="state" widget="badge" decoration-warning="state == 'waiting'" decoration-danger="state == 'blocked'"/>
+                        </div>
+                        <field name="name" class="text-muted"/>
+                        <field name="question"/>
+                        <div class="text-muted small">推荐：<field name="recommendation"/></div>
+                        <div class="small"><field name="owner_id" widget="many2one_avatar_user"/></div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="work_step_view_search" model="ir.ui.view">
+        <field name="name">work.step.search</field>
+        <field name="model">work.step</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="record_name"/>
+                <field name="playbook_id"/>
+                <filter name="mine" string="我负责的" domain="[('owner_id', '=', uid)]"/>
+                <separator/>
+                <filter name="waiting" string="待人工决定" domain="[('state', '=', 'waiting')]"/>
+                <filter name="blocked" string="受阻" domain="[('state', '=', 'blocked')]"/>
+                <group>
+                    <filter name="by_playbook" string="Playbook" context="{'group_by': 'playbook_id'}"/>
+                    <filter name="by_state" string="状态" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="work_step_action_decide" model="ir.actions.act_window">
+        <field name="name">待我决定</field>
+        <field name="res_model">work.step</field>
+        <field name="view_mode">kanban,list</field>
+        <field name="domain">[('state', 'in', ('waiting', 'blocked'))]</field>
+        <field name="context">{'search_default_mine': 1}</field>
+        <field name="help" type="html"><p>没有需要你决定的事。数字员工请你拍板或遇到阻碍时，会出现在这里。</p></field>
+    </record>
+
+    <record id="work_step_action_all" model="ir.actions.act_window">
+        <field name="name">所有步骤</field>
+        <field name="res_model">work.step</field>
+        <field name="view_mode">list,kanban</field>
+        <field name="context">{'search_default_by_playbook': 1}</field>
+    </record>
+
+
+    <record id="work_proposal_view_list" model="ir.ui.view">
+        <field name="name">work.proposal.list</field>
+        <field name="model">work.proposal</field>
+        <field name="arch" type="xml">
+            <list editable="bottom" create="0" delete="0" decoration-muted="state in ('done', 'rejected')">
+                <field name="create_date" string="起草时间" readonly="1"/>
+                <field name="playbook_id" readonly="1" optional="show"/>
+                <field name="record_name" readonly="1"/>
+                <field name="action_name" readonly="1"/>
+                <field name="summary" readonly="1"/>
+                <field name="preview" readonly="1"/>
+                <field name="state" readonly="1" widget="badge" decoration-warning="state == 'pending'"
+                       decoration-success="state == 'done'" decoration-danger="state == 'failed'"/>
+                <field name="human_note" readonly="state != 'pending'"/>
+                <field name="result" optional="show"/>
+                <field name="decided_by" optional="hide"/>
+                <field name="owner_id" optional="hide"/>
+                <button name="action_confirm" type="object" string="确认执行" class="btn-primary" invisible="state != 'pending'"/>
+                <button name="action_reject" type="object" string="驳回" invisible="state != 'pending'"/>
+                <button name="action_open_result" type="object" string="看结果" icon="fa-external-link" invisible="not result_model"/>
+                <field name="result_model" column_invisible="1"/>
+                <button name="action_open_record" type="object" string="打开事项" icon="fa-folder-open-o"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="work_proposal_view_search" model="ir.ui.view">
+        <field name="name">work.proposal.search</field>
+        <field name="model">work.proposal</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="record_name"/>
+                <filter name="mine" string="我负责的" domain="[('owner_id', '=', uid)]"/>
+                <filter name="pending" string="待确认" domain="[('state', '=', 'pending')]"/>
+                <group>
+                    <filter name="by_playbook" string="Playbook" context="{'group_by': 'playbook_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="work_proposal_action" model="ir.actions.act_window">
+        <field name="name">待确认动作</field>
+        <field name="res_model">work.proposal</field>
+        <field name="view_mode">list</field>
+        <field name="context">{'search_default_pending': 1, 'search_default_mine': 1}</field>
+        <field name="help" type="html"><p>数字员工起草的 Odoo 动作（建会议、下采购单、发邮件、作废账单）在这里等你确认，确认后才执行。</p></field>
+    </record>
+
+    <record id="work_playbook_view_form" model="ir.ui.view">
+        <field name="name">work.playbook.form</field>
+        <field name="model">work.playbook</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <div class="oe_title"><h1><field name="name"/></h1></div>
+                    <group>
+                        <group>
+                            <field name="code"/>
+                            <field name="model"/>
+                            <field name="group_id"/>
+                            <field name="active"/>
+                        </group>
+                        <group>
+                            <field name="party_label"/>
+                            <field name="owner_field"/>
+                            <field name="party_field"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="步骤" name="stages">
+                            <field name="stage_ids">
+                                <list editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="code"/>
+                                    <field name="name"/>
+                                    <field name="short_name" optional="show"/>
+                                    <field name="external_name" optional="show"/>
+                                    <field name="gate"/>
+                                    <field name="gate_domain" optional="hide"/>
+                                    <field name="on_approve" optional="hide"/>
+                                    <field name="human_question"/>
+                                    <field name="goal" optional="hide"/>
+                                    <field name="agent_task" optional="hide"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="岗位卡与对外规则" name="role">
+                            <group>
+                                <field name="role"/>
+                                <field name="external_rules"/>
+                                <field name="agent_fields"/>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="work_playbook_view_list" model="ir.ui.view">
+        <field name="name">work.playbook.list</field>
+        <field name="model">work.playbook</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="code"/>
+                <field name="model"/>
+                <field name="party_label"/>
+                <field name="group_id"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="work_playbook_action" model="ir.actions.act_window">
+        <field name="name">Playbook</field>
+        <field name="res_model">work.playbook</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <menuitem id="menu_work_root" name="数字员工" sequence="5" web_icon="mail,static/description/icon.png"/>
+    <menuitem id="menu_work_decide" name="待我决定" parent="menu_work_root" action="work_step_action_decide" sequence="10"/>
+    <menuitem id="menu_work_proposals" name="待确认动作" parent="menu_work_root" action="work_proposal_action" sequence="15"/>
+    <menuitem id="menu_work_all" name="所有步骤" parent="menu_work_root" action="work_step_action_all" sequence="20"/>
+    <menuitem id="menu_work_playbook" name="Playbook" parent="menu_work_root" action="work_playbook_action" sequence="90"
+              groups="base.group_system"/>
+</odoo>

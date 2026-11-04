@@ -1,0 +1,72 @@
+<odoo>
+    <data noupdate="1">
+        <record id="playbook_ap" model="work.playbook">
+            <field name="sequence">20</field>
+            <field name="code">ap</field>
+            <field name="name">应付发票审核</field>
+            <field name="model">account.move</field>
+            <field name="party_label">供应商</field>
+            <field name="owner_field">invoice_user_id</field>
+            <field name="party_field">partner_id</field>
+            <field name="group_id" ref="account.group_account_invoice"/>
+            <field name="agent_fields">ap_match_status
+ap_variance_note
+ap_payment_date</field>
+            <field name="role">你是公司财务部的 AI 应付专员，和应付会计一起审核供应商发票：把发票和采购单、入库逐行核对（三单匹配），发现差异就和供应商沟通澄清，最后安排付款计划。会计只需要做少量关键决定。
+对供应商用中文，礼貌、简洁、就事论事。</field>
+            <field name="external_rules">任何会约束公司的话都是 commitment：确认付款、承诺付款日期、接受或拒绝发票、同意差价或多开的数量、扣款、对账结论。
+不能向供应商透露：货是给哪个客户的、我们的销售价和利润、其他供应商的报价、内部审批意见。
+可以直接告诉供应商的：发票已收到、正在核对、具体哪一行和采购单或入库数量不一致（只说我方采购单和入库的数字）、需要对方补什么资料。
+对供应商说「已付款」「已安排付款」，必须有 Odoo 记录作依据。</field>
+        </record>
+
+        <record id="ap_stage_intake" model="work.stage">
+            <field name="playbook_id" ref="playbook_ap"/>
+            <field name="sequence">1</field>
+            <field name="code">intake</field>
+            <field name="name">收票登记</field>
+            <field name="short_name">收票</field>
+            <field name="external_name">已收到发票</field>
+            <field name="goal">确认发票要素齐全：供应商、发票号、开票日期、金额、对应采购单。</field>
+            <field name="agent_task">核对发票要素是否齐全，查同一供应商有没有相同发票号的其他账单（same_ref_bills）。有重复就标记受阻并写清楚是哪张；要素齐全且不重复就完成这一步。</field>
+            <field name="gate">agent</field>
+        </record>
+        <record id="ap_stage_match" model="work.stage">
+            <field name="playbook_id" ref="playbook_ap"/>
+            <field name="sequence">2</field>
+            <field name="code">match</field>
+            <field name="name">三单匹配</field>
+            <field name="short_name">匹配</field>
+            <field name="external_name">核对中</field>
+            <field name="goal">发票、采购单、入库三者的品名、数量、单价一致。</field>
+            <field name="agent_task">逐行比较：开票数量不能超过入库数量减去其他账单已开数量（received_qty - billed_on_other_bills_qty），开票单价应等于采购单价。全部一致就把 ap_match_status 填 matched 并完成这一步；有差异就填 variance，在 ap_variance_note 里逐行写出差异和金额影响，再请会计决定：按采购单金额付、等供应商改票、还是接受差异。没有采购单的填 no_po 并请会计决定。</field>
+            <field name="human_question">差异怎么处理？</field>
+            <field name="gate">condition</field>
+            <field name="gate_domain">[("ap_match_status", "!=", "matched")]</field>
+        </record>
+        <record id="ap_stage_approve" model="work.stage">
+            <field name="playbook_id" ref="playbook_ap"/>
+            <field name="sequence">3</field>
+            <field name="code">approve</field>
+            <field name="name">审批过账</field>
+            <field name="short_name">审批</field>
+            <field name="external_name">审批中</field>
+            <field name="goal">会计批准后过账，发票成为应付。</field>
+            <field name="agent_task">汇总匹配结果和上一步的决定，推荐过账或退回。批准这一步会过账这张账单。</field>
+            <field name="human_question">是否批准过账？</field>
+            <field name="gate">human</field>
+            <field name="on_approve">post_bill</field>
+        </record>
+        <record id="ap_stage_schedule" model="work.stage">
+            <field name="playbook_id" ref="playbook_ap"/>
+            <field name="sequence">4</field>
+            <field name="code">schedule</field>
+            <field name="name">付款计划</field>
+            <field name="short_name">付款计划</field>
+            <field name="external_name">已安排付款</field>
+            <field name="goal">按付款条件和到期日排进付款计划。</field>
+            <field name="agent_task">按到期日和付款条件定计划付款日，写入 ap_payment_date，然后完成这一步。付款本身由人在 Odoo 里登记，不要对供应商说已经付款。</field>
+            <field name="gate">agent</field>
+        </record>
+    </data>
+</odoo>

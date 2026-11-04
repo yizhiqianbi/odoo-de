@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>数字员工群</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <main id="login" class="login" hidden>
+    <div class="login-form">
+      <h1>数字员工群</h1>
+      <p class="login-lede">每件事一个群：一笔外贸订单、一张供应商发票、一位候选人。群里有拍板的人、对方，和这件事专属的 AI 员工。选一个身份进去，另开一个标签页可以换另一个身份。</p>
+      <div class="roles">
+        <a class="role role-desk" href="/desk">
+          <strong>工作台</strong><span>在 Odoo 里：等你拍板的事、场景看板、数字员工花名册和动作账本，用 Odoo 账号登录</span>
+        </a>
+        <a class="role role-admin" href="/admin">
+          <strong>管理员</strong><span>agent 组织、权限表和所有 agent 之间的往来</span>
+        </a>
+        <a class="role role-odoo" href="/odoo" target="_blank" rel="noopener">
+          <strong>Odoo 后台</strong><span>订单、账单、候选人、日历和留痕的原始记录，要用 Odoo 账号密码登录</span>
+        </a>
+        <a class="role role-split" href="/split">
+          <strong>左右分屏</strong><span>左边当公司的人，右边当对方，一个窗口里同时演</span>
+        </a>
+      </div>
+      <h2 class="identity-head">公司里拍板的人</h2>
+      <div id="sales-list" class="identities"></div>
+      <h2 class="identity-head">对方：客户、供应商、候选人</h2>
+      <div id="customer-list" class="identities"></div>
+      <p id="login-error" class="form-error" role="alert"></p>
+    </div>
+  </main>
+
+  <div id="app" class="app" hidden>
+    <aside class="groups" aria-label="群列表">
+      <div class="me">
+        <span id="me-name"></span>
+        <button id="logout" class="link-btn" type="button"></button>
+      </div>
+      <a id="desk-item" class="group-item desk-item" href="/desk" target="_blank" rel="noopener" hidden>
+        <strong>工作台</strong><span>在 Odoo 里打开，看所有等你处理的事和动作账本</span>
+      </a>
+      <button id="assistant-item" class="group-item assistant-item" type="button" hidden>
+        <strong>我的助理</strong><span>你的助理 agent，管你名下所有事项</span>
+      </button>
+      <nav id="group-list"></nav>
+    </aside>
+
+    <section class="room" aria-label="群聊">
+      <header class="room-head">
+        <div class="room-title">
+          <h2 id="room-title"></h2>
+          <p id="room-sub"></p>
+        </div>
+        <button id="panel-toggle" class="btn btn-quiet panel-toggle" type="button" aria-controls="panel" aria-expanded="false">事项与待办</button>
+      </header>
+      <ol id="route" class="route" aria-label="流程进度"></ol>
+      <div id="stream" class="stream" aria-live="polite"></div>
+      <button id="ai-status" class="ai-status" type="button" aria-expanded="false" title="点开看全文" hidden><span></span></button>
+      <form id="composer" class="composer">
+        <div id="audience" class="audience" role="radiogroup" hidden>
+          <button type="button" role="radio" data-aud="all" aria-checked="true">发到群里</button>
+          <button type="button" role="radio" data-aud="internal" aria-checked="false" id="aud-internal">只给 AI</button>
+        </div>
+        <div class="composer-row">
+          <textarea id="input" rows="2" required></textarea>
+          <button type="submit" class="btn btn-primary" id="send-btn"></button>
+        </div>
+      </form>
+    </section>
+
+    <aside id="panel" class="panel" aria-label="事项与待办" hidden></aside>
+  </div>
+
+  <script src="/static/app.js" type="module"></script>
+</body>
+</html>

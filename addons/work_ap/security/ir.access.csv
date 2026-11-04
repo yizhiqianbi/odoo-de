@@ -1,0 +1,5 @@
+id,name,model_id,group_id/id,operation,domain
+access_account_move_ap_agent,Bills: digital employee reads,account.move,work_ap.group_ap_agent,r,
+access_account_move_line_ap_agent,Bill lines: digital employee reads,account.move.line,work_ap.group_ap_agent,r,
+access_purchase_order_ap_agent,Purchase orders: digital employee reads,purchase.order,work_ap.group_ap_agent,r,
+access_purchase_order_line_ap_agent,Purchase lines: digital employee reads,purchase.order.line,work_ap.group_ap_agent,r,

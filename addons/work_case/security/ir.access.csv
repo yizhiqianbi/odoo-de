@@ -1,0 +1,11 @@
+id,name,model_id,group_id/id,operation,domain
+access_work_playbook_user,Playbooks: read,work.playbook,base.group_user,r,
+access_work_playbook_admin,Playbooks: admins edit,work.playbook,base.group_system,crud,
+access_work_stage_user,Playbook steps: read,work.stage,base.group_user,r,
+access_work_stage_admin,Playbook steps: admins edit,work.stage,base.group_system,crud,
+access_work_step_user,Steps: people working the playbook decide,work.step,base.group_user,ru,"['|', ('playbook_id.group_id', '=', False), ('playbook_id.group_id', 'in', user.all_group_ids.ids)]"
+access_work_step_admin,Steps: admins see all,work.step,base.group_system,ru,
+access_work_proposal_user,Drafted actions: people working the playbook confirm,work.proposal,base.group_user,ru,"['|', ('playbook_id.group_id', '=', False), ('playbook_id.group_id', 'in', user.all_group_ids.ids)]"
+access_work_proposal_admin,Drafted actions: admins see all,work.proposal,base.group_system,ru,
+access_work_action_user,Ledger: people working the playbook read,work.action,base.group_user,r,"['|', ('playbook_id.group_id', '=', False), ('playbook_id.group_id', 'in', user.all_group_ids.ids)]"
+access_work_action_admin,Ledger: admins read all,work.action,base.group_system,r,

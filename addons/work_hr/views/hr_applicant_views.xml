@@ -1,0 +1,25 @@
+<odoo>
+    <record id="hr_applicant_view_form_work_hr" model="ir.ui.view">
+        <field name="name">hr.applicant.form.work.hr</field>
+        <field name="model">hr.applicant</field>
+        <field name="inherit_id" ref="hr_recruitment.hr_applicant_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form/header" position="inside">
+                <button name="action_work_start" type="object" string="交给数字员工跟进" invisible="work_step_ids"/>
+            </xpath>
+            <xpath expr="//sheet/notebook" position="inside">
+                <page string="数字员工跟进" name="work_hr">
+                    <group>
+                        <field name="hr_interview_slot"/>
+                        <field name="hr_feedback_summary"/>
+                        <field name="hr_onboarding_note"/>
+                    </group>
+                    <field name="work_step_ids" context="{'hide_case': True}" invisible="not work_step_ids"/>
+                </page>
+                <page string="数字员工群" name="work_chat" invisible="not work_step_ids">
+                    <field name="work_chat_frame" nolabel="1" readonly="1"/>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

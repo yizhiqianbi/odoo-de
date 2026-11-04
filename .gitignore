@@ -1,0 +1,15 @@
+# Upstream Odoo is cloned separately. Local runtime, data and secrets stay on the machine.
+odoo/
+venv/
+data/
+logs/
+backups/
+secrets/
+dsh-home/
+odoo.conf
+superagent/
+
+chat/venv/
+**/__pycache__/
+*.pyc
+*.db

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <!-- The one Odoo user people chat with in Discuss. It is not in group_agent: it holds no business rights,
+         it only carries messages; work on cases is done by each playbook's own bot. -->
+    <record id="user_assistant" model="res.users">
+        <field name="name">数字员工</field>
+        <field name="login">de_assistant</field>
+        <field name="group_ids" eval="[(6, 0, [ref('base.group_user'), ref('base.group_user_regular')])]"/>
+    </record>
+</odoo>

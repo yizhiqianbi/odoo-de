@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="work_case.Workbench">
+        <div class="o_action o_work_bench h-100 overflow-auto">
+            <header class="o_wb_head">
+                <div>
+                    <h1>全局看板</h1>
+                    <p t-out="this.summary"/>
+                </div>
+                <nav class="o_wb_tabs" role="tablist" aria-label="全局看板">
+                    <button type="button" role="tab" t-att-aria-selected="this.state.tab === 'home' ? 'true' : 'false'"
+                            t-on-click="() => this.setTab('home')">首页</button>
+                    <button type="button" role="tab" t-att-aria-selected="this.state.tab === 'board' ? 'true' : 'false'"
+                            t-on-click="() => this.setTab('board')">场景看板</button>
+                    <button type="button" role="tab" t-att-aria-selected="this.state.tab === 'roster' ? 'true' : 'false'"
+                            t-on-click="() => this.setTab('roster')">数字员工</button>
+                    <button type="button" class="o_wb_tab_link" t-on-click="() => this.openLedger()">动作账本</button>
+                </nav>
+            </header>
+
+            <div t-if="this.state.tab === 'home'" class="o_wb_home">
+                <section class="o_wb_main" aria-labelledby="wb-wait">
+                    <h2 id="wb-wait">等你拍板</h2>
+                    <p t-if="!this.state.data.waiting.length" class="o_wb_empty">
+                        这里空着，说明数字员工手上的事都在它们被允许的范围里。要它们动 Odoo 或对外说承诺类的话时，会出现在这里。
+                    </p>
+                    <t t-foreach="this.state.data.waiting" t-as="item" t-key="this.key(item)">
+                        <article t-att-class="'o_wb_slip ' + item.kind + (this.state.sealed[this.key(item)] ? ' sealed' : '')">
+                            <header>
+                                <span class="o_wb_kind" t-out="this.kinds[item.kind]"/>
+                                <a href="#" t-on-click.prevent="() => this.openRecord(item.res_model, item.res_id)">
+                                    <t t-out="item.playbook"/>：<t t-out="item.case"/>
+                                </a>
+                                <time t-out="this.when(item.at)"/>
+                            </header>
+                            <h3 t-out="item.title"/>
+                            <p class="o_wb_q" t-out="item.question"/>
+                            <p t-if="item.kind === 'decision' and item.summary" class="o_wb_why" t-out="item.summary"/>
+                            <pre t-if="item.preview" t-att-class="'o_wb_preview' + (item.kind === 'message' and !this.state.open[this.key(item)] ? ' clamp' : '')"
+                                 t-on-click="() => this.toggle(this.key(item))" t-out="item.preview"/>
+                            <fieldset t-if="item.kind === 'decision' and item.options.length" class="o_wb_options">
+                                <legend class="visually-hidden">选一个</legend>
+                                <label t-foreach="item.options" t-as="option" t-key="option_index">
+                                    <input type="radio" t-att-name="'opt-' + item.id" t-att-value="option"
+                                           t-att-checked="this.choice(item) === option" t-on-change="() => this.setChoice(item, option)"/>
+                                    <span t-out="option"/>
+                                    <span t-if="option === item.recommendation" class="o_wb_rec">数字员工建议</span>
+                                </label>
+                            </fieldset>
+                            <t t-if="!this.state.sealed[this.key(item)]">
+                                <textarea class="form-control" rows="2" placeholder="备注，驳回时必填" aria-label="备注"
+                                          t-att-value="this.state.notes[this.key(item)] or ''" t-on-input="(ev) => this.setNote(item, ev)"/>
+                                <div class="o_wb_actions">
+                                    <button type="button" class="btn btn-primary" t-att-disabled="this.state.busy[this.key(item)]"
+                                            t-on-click="() => this.decide(item, true)">
+                                        <t t-if="item.kind === 'proposal'">确认执行</t>
+                                        <t t-elif="item.kind === 'message'">照发</t>
+                                        <t t-else="">批准</t>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger" t-att-disabled="this.state.busy[this.key(item)]"
+                                            t-on-click="() => this.decide(item, false)">
+                                        <t t-if="item.kind === 'message'">不发</t><t t-else="">驳回</t>
+                                    </button>
+                                    <span t-if="item.kind === 'proposal'" class="text-muted small">以你的身份在 Odoo 里执行</span>
+                                    <span t-if="item.kind === 'message'" class="text-muted small">批准后由群聊发出；要改字，去事项里的「数字员工群」</span>
+                                </div>
+                                <p t-if="this.state.errors[this.key(item)]" class="text-danger small mb-0" role="alert" t-out="this.state.errors[this.key(item)]"/>
+                            </t>
+                            <span t-if="this.state.sealed[this.key(item)]" aria-hidden="true"
+                                  t-att-class="'o_wb_seal ' + this.state.sealed[this.key(item)]"
+                                  t-out="this.state.sealed[this.key(item)] === 'approved' ? '已批' : '退回'"/>
+                        </article>
+                    </t>
+
+                    <h2>你名下的事项</h2>
+                    <p t-if="!this.state.data.mine.length" class="o_wb_empty">你名下还没有由数字员工跟进的事项。</p>
+                    <table t-if="this.state.data.mine.length" class="table table-sm o_wb_table">
+                        <thead><tr><th>事项</th><th>场景</th><th>对方</th><th>现在在</th></tr></thead>
+                        <tbody>
+                            <tr t-foreach="this.state.data.mine" t-as="c" t-key="c.res_model + c.res_id">
+                                <th scope="row">
+                                    <a href="#" t-on-click.prevent="() => this.openRecord(c.res_model, c.res_id)" t-out="c.name"/>
+                                    <small t-if="c.facts.length">
+                                        <t t-foreach="c.facts.slice(1, 3)" t-as="f" t-key="f_index"><t t-out="f.label"/> <t t-out="f.value"/>　</t>
+                                    </small>
+                                </th>
+                                <td t-out="c.playbook"/>
+                                <td t-out="c.party"/>
+                                <td><span t-att-class="'o_wb_pill ' + c.state" t-out="this.states[c.state]"/> <t t-out="c.step"/></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </section>
+
+                <section class="o_wb_ledger" aria-labelledby="wb-ledger">
+                    <div class="o_wb_ledger_top">
+                        <h2 id="wb-ledger">最近的动作</h2>
+                        <p>数字员工对 Odoo 的每一次调用，人每一次拍板。色条是风险等级，被拒的用红字标出。
+                            <a href="#" t-on-click.prevent="() => this.openLedger()">打开完整账本</a></p>
+                    </div>
+                    <p t-if="!this.state.data.ledger.length" class="o_wb_empty px-3">还没有记录。</p>
+                    <ol class="o_wb_rows">
+                        <li t-foreach="this.state.data.ledger" t-as="a" t-key="a.id"
+                            t-att-class="'o_wb_entry ' + a.risk.toLowerCase() + (a.ok ? '' : ' refused') + (a.human ? ' human' : '')">
+                            <time><b t-out="this.when(a.at).split(' ')[1]"/><t t-out="this.when(a.at).split(' ')[0]"/></time>
+                            <div>
+                                <p class="o_wb_what"><strong t-out="a.what"/><span t-if="!a.ok" class="o_wb_refused">被拒</span></p>
+                                <p t-if="a.ok and a.detail" class="o_wb_detail" t-out="a.detail"/>
+                                <p t-if="!a.ok" class="o_wb_detail" t-out="a.error"/>
+                                <p class="o_wb_meta">
+                                    <span t-out="a.actor"/>
+                                    <a href="#" t-on-click.prevent="() => this.openRecord(a.res_model, a.res_id)" t-out="a.case"/>
+                                    <a t-if="a.link_model" href="#" class="o_wb_link" t-on-click.prevent="() => this.openRecord(a.link_model, a.link_id)">产生的单据</a>
+                                </p>
+                            </div>
+                            <span class="o_wb_tier" t-att-title="this.tiers[a.risk]" t-out="a.risk"/>
+                        </li>
+                    </ol>
+                </section>
+            </div>
+
+            <div t-if="this.state.tab === 'board'" class="o_wb_boards">
+                <p class="o_wb_lede">每个流程走到哪一步、卡在哪里。方形的站点要人拍板，圆形的由数字员工自己推进。</p>
+                <section t-foreach="this.state.data.boards" t-as="b" t-key="b.id" class="o_wb_board">
+                    <h2><t t-out="b.name"/> <small><t t-out="b.total"/> 件</small></h2>
+                    <ol class="o_wb_route" t-att-style="'--n:' + (b.stages.length + 1)">
+                        <li t-foreach="b.stages" t-as="s" t-key="s.id" t-att-class="(s.human ? 'human' : '') + (s.cases.length ? ' occupied' : '')">
+                            <span class="o_wb_port" aria-hidden="true"/>
+                            <h3><t t-out="s.name"/> <b t-if="s.cases.length" t-out="s.cases.length"/></h3>
+                            <ul>
+                                <li t-foreach="s.cases" t-as="c" t-key="c.res_id" t-att-class="c.state">
+                                    <a href="#" t-att-title="this.states[c.state]" t-on-click.prevent="() => this.openRecord(c.res_model, c.res_id)" t-out="c.name"/>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="finish">
+                            <span class="o_wb_port" aria-hidden="true"/>
+                            <h3>办完 <b t-if="b.done.length" t-out="b.done.length"/></h3>
+                            <ul>
+                                <li t-foreach="b.done" t-as="c" t-key="c.res_id" class="done">
+                                    <a href="#" t-on-click.prevent="() => this.openRecord(c.res_model, c.res_id)" t-out="c.name"/>
+                                </li>
+                            </ul>
+                        </li>
+                    </ol>
+                </section>
+            </div>
+
+            <div t-if="this.state.tab === 'roster'" class="o_wb_roster">
+                <p class="o_wb_lede">每个场景一位数字员工。它能读的、能写的字段和能起草的动作都在 Playbook 里定义；越权的调用会被 Odoo 拒绝并记在账本里。</p>
+                <table class="table o_wb_table">
+                    <thead>
+                        <tr><th>场景</th><th>手上</th><th>等人</th><th>受阻</th><th>今天</th><th>今天被拒</th><th>累计</th><th>动作构成</th><th>最近在做</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr t-foreach="this.state.data.roster" t-as="r" t-key="r.playbook">
+                            <th scope="row"><t t-out="r.playbook"/><small t-out="r.actor or '还没上岗'"/></th>
+                            <td t-out="r.cases"/>
+                            <td t-att-class="r.waiting ? 'warn' : ''" t-out="r.waiting"/>
+                            <td t-att-class="r.blocked ? 'bad' : ''" t-out="r.blocked"/>
+                            <td t-out="r.today"/>
+                            <td t-att-class="r.refused_today ? 'bad' : ''" t-out="r.refused_today"/>
+                            <td><t t-out="r.total"/><small t-if="r.refused">被拒 <t t-out="r.refused"/></small></td>
+                            <td>
+                                <span class="o_wb_tierbar" role="img"
+                                      t-att-aria-label="'只读 ' + r.tiers.R0 + '，内部记录 ' + r.tiers.R1 + '，对外说话 ' + r.tiers.R2 + '，Odoo 动作 ' + r.tiers.R3">
+                                    <span class="r0" t-att-style="this.tierWidth(r, 'R0')"/>
+                                    <span class="r1" t-att-style="this.tierWidth(r, 'R1')"/>
+                                    <span class="r2" t-att-style="this.tierWidth(r, 'R2')"/>
+                                    <span class="r3" t-att-style="this.tierWidth(r, 'R3')"/>
+                                </span>
+                            </td>
+                            <td class="o_wb_last"><t t-out="r.last"/><small t-if="r.last_at"><t t-out="r.last_case"/>，<t t-out="this.when(r.last_at)"/></small></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <ul class="o_wb_legend">
+                    <li class="r0">只读：查资料</li>
+                    <li class="r1">内部记录：写进展、提问题、记待跟进</li>
+                    <li class="r2">对外说话：在群里对客户、供应商、候选人说话</li>
+                    <li class="r3">Odoo 动作：起草后由人确认才执行</li>
+                </ul>
+            </div>
+        </div>
+    </t>
+</templates>

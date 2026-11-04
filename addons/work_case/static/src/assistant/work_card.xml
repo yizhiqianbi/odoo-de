@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="work_case.WorkCard">
+        <div class="o_work_card" t-att-class="{ 'is-open': this.d and this.d.open and !this.d.superseded, 'is-closed': this.d and !(this.d.open and !this.d.superseded) }">
+            <p t-if="!this.d" class="o_work_card_note">正在读取…</p>
+            <p t-elif="this.d.gone" class="o_work_card_note">这件事已经不存在了。</p>
+            <t t-elif="this.d.kind">
+                <header>
+                    <span class="o_work_card_kind" t-att-class="this.d.kind" t-out="this.kinds[this.d.kind]"/>
+                    <a href="#" t-on-click.prevent="() => this.openCase()"><t t-out="this.d.playbook"/>：<t t-out="this.d.case"/></a>
+                </header>
+                <h4 t-out="this.d.title"/>
+                <p class="o_work_card_q" t-if="this.d.kind !== 'decision' or this.d.question" t-out="this.d.question"/>
+                <p class="o_work_card_why" t-if="this.d.kind === 'decision' and this.d.summary and this.d.open" t-out="this.d.summary"/>
+                <pre class="o_work_card_preview" t-if="this.d.preview" t-out="this.d.preview"/>
+
+                <p t-if="this.d.superseded" class="o_work_card_note">这张卡片已经过期，看下面最新的一张。</p>
+                <t t-elif="this.d.open and this.d.mine">
+                    <div t-if="this.d.kind === 'decision' and this.d.options.length" class="o_work_card_options" role="radiogroup" aria-label="选一个">
+                        <button type="button" role="radio" t-foreach="this.d.options" t-as="option" t-key="option_index"
+                                t-att-aria-checked="this.choice === option ? 'true' : 'false'" t-on-click="() => this.setChoice(option)">
+                            <t t-out="option"/>
+                            <small t-if="option === this.d.recommendation">建议</small>
+                        </button>
+                    </div>
+                    <textarea class="form-control" rows="1" placeholder="备注，驳回时必填" aria-label="备注"
+                              t-att-value="this.state.note" t-on-input="(ev) => this.setNote(ev)"/>
+                    <div class="o_work_card_actions">
+                        <button type="button" class="btn btn-primary btn-sm" t-att-disabled="this.state.busy" t-on-click="() => this.decide(true)" t-out="this.approveLabel"/>
+                        <button type="button" class="btn btn-outline-danger btn-sm" t-att-disabled="this.state.busy" t-on-click="() => this.decide(false)">
+                            <t t-if="this.d.kind === 'message'">不发</t><t t-else="">驳回</t>
+                        </button>
+                        <span t-if="this.d.kind === 'proposal'" class="o_work_card_hint">以你的身份在 Odoo 里执行</span>
+                        <span t-if="this.d.kind === 'message'" class="o_work_card_hint">批准后由群聊发给对方</span>
+                    </div>
+                    <p t-if="this.state.error" class="text-danger small mb-0" role="alert" t-out="this.state.error"/>
+                </t>
+                <p t-elif="this.d.open" class="o_work_card_note">等 <t t-out="this.d.owner"/> 决定。</p>
+                <div t-else="" class="o_work_card_result" t-att-class="{ 'sealed': this.state.sealed }">
+                    <span class="o_work_card_stamp" t-out="this.outcome"/>
+                    <span t-if="this.d.result and this.d.result !== this.outcome" t-out="this.d.result"/>
+                    <small t-if="this.d.decided_by"><t t-out="this.d.decided_by"/> · <t t-out="this.when(this.d.decided_at)"/></small>
+                    <a t-if="this.d.link" t-att-href="this.d.link">打开结果</a>
+                </div>
+            </t>
+        </div>
+    </t>
+</templates>

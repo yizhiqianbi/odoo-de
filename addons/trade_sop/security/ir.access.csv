@@ -1,0 +1,5 @@
+id,name,model_id,group_id/id,operation,domain
+access_sale_order_agent,Orders: digital employee reads,sale.order,trade_sop.group_trade_agent,r,
+access_sale_order_line_agent,Order lines: digital employee reads,sale.order.line,trade_sop.group_trade_agent,r,
+access_stock_picking_agent,Deliveries: digital employee reads,stock.picking,trade_sop.group_trade_agent,r,
+access_stock_move_agent,Stock moves: digital employee reads,stock.move,trade_sop.group_trade_agent,r,

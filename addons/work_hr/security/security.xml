@@ -1,0 +1,7 @@
+<odoo>
+    <record id="group_hr_agent" model="res.groups">
+        <field name="name">招聘数字员工</field>
+        <field name="comment">Read-only on applicants and job positions; changes the HR playbook only through the work_agent_* methods, and may never refuse an applicant or create an employee.</field>
+        <field name="implied_ids" eval="[(4, ref('work_case.group_agent'))]"/>
+    </record>
+</odoo>

@@ -1,0 +1,30 @@
+<odoo>
+    <record id="view_move_form_work_ap" model="ir.ui.view">
+        <field name="name">account.move.form.work.ap</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form/header" position="inside">
+                <button name="action_work_start" type="object" string="交给数字员工审核"
+                        invisible="work_step_ids or move_type not in ('in_invoice', 'in_refund')"/>
+            </xpath>
+            <xpath expr="//sheet/notebook" position="inside">
+                <page string="数字员工审核" name="work_ap" invisible="move_type not in ('in_invoice', 'in_refund')">
+                    <group>
+                        <group>
+                            <field name="ap_match_status"/>
+                            <field name="ap_payment_date"/>
+                        </group>
+                        <group>
+                            <field name="ap_variance_note"/>
+                        </group>
+                    </group>
+                    <field name="work_step_ids" context="{'hide_case': True}" invisible="not work_step_ids"/>
+                </page>
+                <page string="数字员工群" name="work_chat" invisible="not work_step_ids">
+                    <field name="work_chat_frame" nolabel="1" readonly="1"/>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

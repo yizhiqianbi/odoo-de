@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="work_action_view_list" model="ir.ui.view">
+        <field name="name">work.action.list</field>
+        <field name="model">work.action</field>
+        <field name="arch" type="xml">
+            <list create="0" edit="0" delete="0" decoration-danger="not ok" decoration-bf="human" decoration-info="risk == 'R3' and ok">
+                <field name="create_date" string="时间" widget="datetime"/>
+                <field name="risk" widget="badge" decoration-muted="risk == 'R0'" decoration-info="risk == 'R2'" decoration-warning="risk == 'R3'"/>
+                <field name="actor"/>
+                <field name="what"/>
+                <field name="detail" optional="show"/>
+                <field name="error" optional="show"/>
+                <field name="record_name"/>
+                <field name="playbook_id" optional="hide"/>
+                <field name="ok" column_invisible="True"/>
+                <field name="human" column_invisible="True"/>
+                <field name="link_model" column_invisible="True"/>
+                <button name="action_open_record" type="object" string="打开事项" icon="fa-folder-open-o"/>
+                <button name="action_open_link" type="object" string="产生的单据" icon="fa-file-text-o" invisible="not link_model"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="work_action_view_form" model="ir.ui.view">
+        <field name="name">work.action.form</field>
+        <field name="model">work.action</field>
+        <field name="arch" type="xml">
+            <form create="0" edit="0" delete="0">
+                <header>
+                    <button name="action_open_record" type="object" string="打开事项" class="btn-primary"/>
+                    <button name="action_open_link" type="object" string="产生的单据" invisible="not link_model"/>
+                </header>
+                <sheet>
+                    <h1><field name="what"/></h1>
+                    <group>
+                        <group>
+                            <field name="create_date" string="时间"/>
+                            <field name="actor"/>
+                            <field name="user_id"/>
+                            <field name="human"/>
+                        </group>
+                        <group>
+                            <field name="record_name"/>
+                            <field name="playbook_id"/>
+                            <field name="risk"/>
+                            <field name="ok"/>
+                        </group>
+                    </group>
+                    <field name="detail" nolabel="1"/>
+                    <group invisible="ok">
+                        <field name="error"/>
+                    </group>
+                    <group string="技术细节">
+                        <field name="tool"/>
+                        <field name="args"/>
+                        <field name="result"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="work_action_view_search" model="ir.ui.view">
+        <field name="name">work.action.search</field>
+        <field name="model">work.action</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="what"/>
+                <field name="record_name"/>
+                <field name="actor"/>
+                <filter name="today" string="今天" domain="[('create_date', '&gt;=', (context_today()).strftime('%Y-%m-%d'))]"/>
+                <separator/>
+                <filter name="refused" string="被拒的" domain="[('ok', '=', False)]"/>
+                <filter name="humans" string="人做的决定" domain="[('human', '=', True)]"/>
+                <filter name="agents" string="数字员工做的" domain="[('human', '=', False)]"/>
+                <separator/>
+                <filter name="r0" string="只读" domain="[('risk', '=', 'R0')]"/>
+                <filter name="r1" string="内部记录" domain="[('risk', '=', 'R1')]"/>
+                <filter name="r2" string="对外说话" domain="[('risk', '=', 'R2')]"/>
+                <filter name="r3" string="Odoo 动作" domain="[('risk', '=', 'R3')]"/>
+                <group>
+                    <filter name="by_playbook" string="场景" context="{'group_by': 'playbook_id'}"/>
+                    <filter name="by_actor" string="谁" context="{'group_by': 'actor'}"/>
+                    <filter name="by_record" string="事项" context="{'group_by': 'record_name'}"/>
+                    <filter name="by_risk" string="风险" context="{'group_by': 'risk'}"/>
+                    <filter name="by_day" string="日期" context="{'group_by': 'create_date:day'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="work_action_view_pivot" model="ir.ui.view">
+        <field name="name">work.action.pivot</field>
+        <field name="model">work.action</field>
+        <field name="arch" type="xml">
+            <pivot>
+                <field name="actor" type="row"/>
+                <field name="risk" type="col"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="work_action_view_graph" model="ir.ui.view">
+        <field name="name">work.action.graph</field>
+        <field name="model">work.action</field>
+        <field name="arch" type="xml">
+            <graph type="bar" stacked="1">
+                <field name="create_date" interval="day"/>
+                <field name="risk"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="work_action_action" model="ir.actions.act_window">
+        <field name="name">动作账本</field>
+        <field name="res_model">work.action</field>
+        <field name="view_mode">list,pivot,graph,form</field>
+        <field name="search_view_id" ref="work_action_view_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">还没有记录</p>
+            <p>数字员工每调用一次 Odoo、人每拍板一次，这里就多一行。账本只能追加，不能修改。</p>
+        </field>
+    </record>
+
+    <menuitem id="menu_work_ledger" name="动作账本" parent="menu_work_root" action="work_action_action" sequence="18"/>
+</odoo>

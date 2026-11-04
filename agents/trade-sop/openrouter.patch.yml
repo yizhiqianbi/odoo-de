@@ -1,0 +1,14 @@
+# Routes every Session through OpenRouter; the key is read from OPENROUTER_API_KEY (secrets/dsh.env), never stored here.
+# Provider routing (which hosts, quantization, data policy) is not configurable in DSH profiles, so set it in the OpenRouter account settings.
+- id: llm-pi-ai
+  config:
+    providers:
+      openrouter:
+        apiKeyEnv: OPENROUTER_API_KEY
+        models:
+          - id: deepseek/deepseek-v4.1-flash-1017
+          - id: deepseek/deepseek-v4-pro-0813
+- id: agent-default-model
+  config:
+    provider: openrouter
+    model: deepseek/deepseek-v4.1-flash-1017

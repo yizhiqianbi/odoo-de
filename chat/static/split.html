@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>跟单群：两个身份同屏</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="split">
+  <section class="split-side">
+    <h2 class="split-label"><select id="left" aria-label="左边的身份"></select><span>左边</span></h2>
+    <iframe id="left-frame" title="左边的身份"></iframe>
+  </section>
+  <div class="split-handle" role="separator" aria-orientation="vertical" aria-label="拖动调整左右宽度" tabindex="0"></div>
+  <section class="split-side">
+    <h2 class="split-label"><select id="right" aria-label="右边的身份"></select><span>右边</span></h2>
+    <iframe id="right-frame" title="右边的身份"></iframe>
+  </section>
+  <script>
+    const body = document.body;
+    const params = new URLSearchParams(location.search);
+    const ROLE = { admin: "管理员", sales: "业务员", customer: "顾客" };
+    fetch("/api/identities").then((r) => r.json()).then((people) => {
+      const pick = { left: params.get("left") || "mitchell", right: params.get("right") || "anna" };
+      for (const side of ["left", "right"]) {
+        const select = document.getElementById(side);
+        for (const u of people.filter((p) => p.role !== "admin")) {
+          select.append(new Option(`${ROLE[u.role]} ${u.name}`, u.username, false, u.username === pick[side]));
+        }
+        const show = () => {
+          document.getElementById(`${side}-frame`).src = `/?as=${encodeURIComponent(select.value)}`;
+          params.set(side, select.value);
+          history.replaceState(null, "", `?${params}`);
+        };
+        select.addEventListener("change", show);
+        show();
+      }
+    });
+    const handle = document.querySelector(".split-handle");
+    const setLeft = (pct) => body.style.setProperty("--left", `${Math.min(80, Math.max(30, pct))}%`);
+    handle.addEventListener("pointerdown", (e) => {
+      handle.setPointerCapture(e.pointerId);
+      body.classList.add("dragging");
+      const move = (ev) => setLeft((ev.clientX / innerWidth) * 100);
+      handle.addEventListener("pointermove", move);
+      handle.addEventListener("pointerup", () => {
+        handle.removeEventListener("pointermove", move);
+        body.classList.remove("dragging");
+      }, { once: true });
+    });
+    handle.addEventListener("keydown", (e) => {
+      const now = parseFloat(getComputedStyle(body).getPropertyValue("--left")) || 62;
+      if (e.key === "ArrowLeft") setLeft(now - 3);
+      if (e.key === "ArrowRight") setLeft(now + 3);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+<odoo>
+    <record id="view_order_form_trade_sop" model="ir.ui.view">
+        <field name="name">sale.order.form.trade.sop</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form/header" position="inside">
+                <button name="action_work_start" type="object" string="启动跟单 SOP" invisible="work_step_ids"/>
+            </xpath>
+            <xpath expr="//page[@name='other_information']" position="before">
+                <page string="外贸跟单" name="trade_sop">
+                    <group>
+                        <group string="合同与付款">
+                            <field name="factory_id"/>
+                            <field name="trade_payment_method"/>
+                            <field name="destination_port"/>
+                            <field name="lc_no" invisible="trade_payment_method != 'lc'"/>
+                            <field name="lc_expiry" invisible="trade_payment_method != 'lc'"/>
+                            <field name="lc_latest_shipment" invisible="trade_payment_method != 'lc'"/>
+                        </group>
+                        <group string="船务">
+                            <field name="vessel"/>
+                            <field name="voyage"/>
+                            <field name="etd"/>
+                            <field name="eta"/>
+                            <field name="container_no"/>
+                            <field name="seal_no"/>
+                            <field name="bl_no"/>
+                        </group>
+                    </group>
+                    <group string="唛头">
+                        <field name="shipping_marks" nolabel="1" colspan="2"/>
+                    </group>
+                    <field name="work_step_ids" context="{'hide_case': True}" invisible="not work_step_ids"/>
+                </page>
+                <page string="数字员工群" name="work_chat" invisible="not work_step_ids">
+                    <field name="work_chat_frame" nolabel="1" readonly="1"/>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <menuitem id="menu_trade_decide" name="跟单待决定" parent="sale.sale_order_menu"
+              action="work_case.work_step_action_decide" sequence="90"/>
+</odoo>
